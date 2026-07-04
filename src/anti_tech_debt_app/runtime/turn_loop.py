@@ -31,7 +31,7 @@ class TurnLoop:
         A single effectful interpreter for turn execution.
 
     Category-theoretic framing:
-        A Kleisli arrow from turn operations into persisted session updates
+        A Kleisli arrow from turn operations into persisted thread updates
         and streamed runtime events.
     """
 

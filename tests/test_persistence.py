@@ -47,3 +47,23 @@ def test_legacy_session_schema_migrates_to_threads(tmp_path) -> None:
         tables = {row[0] for row in conn.execute("select name from sqlite_master where type = 'table'")}
     assert "threads" in tables
     assert "sessions" not in tables
+
+
+def test_legacy_sessions_without_messages_still_migrate(tmp_path) -> None:
+    database_path = tmp_path / "state.db"
+    with sqlite3.connect(database_path) as conn:
+        conn.execute("create table sessions (session_id text primary key, title text, created_at text)")
+        conn.execute(
+            "insert into sessions(session_id, title, created_at) values (?, ?, ?)",
+            ("legacy-thread", "legacy", "2026-01-01T00:00:00+00:00"),
+        )
+
+    container = Container(
+        AppConfig(
+            database_path=database_path,
+            event_log_path=tmp_path / "events.jsonl",
+        )
+    )
+
+    assert container.store.get_thread("legacy-thread") is not None
+    assert container.store.list_messages("legacy-thread") == []

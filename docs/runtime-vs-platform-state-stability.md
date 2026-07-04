@@ -72,7 +72,7 @@ This is runtime convenience state, not yet platform-grade state.
 
 Why this is unstable:
 
-- queue topology is likely to change if the runtime becomes multi-session, remote, cancellable, or parallel
+- queue topology is likely to change if the runtime becomes multi-thread, remote, cancellable, or parallel
 - start/stop lifecycle policy is currently tied to one process and one worker loop
 - the queue depth that appears in `RuntimeState` is a local execution metric, not a durable business concept
 
@@ -94,7 +94,7 @@ The names are stable. The transition architecture is not.
 
 Today the system has at least three meaningful state holders:
 
-- `SQLiteStore` for session/message durability
+- `SQLiteStore` for thread/message durability
 - `EventLog` for append-only event history
 - `EventBus` for latest in-memory runtime status
 
@@ -135,7 +135,7 @@ Cons:
 
 Pros:
 
-- clearer authority over session, turn, tool, and approval state
+- clearer authority over thread, turn, tool, and approval state
 - easier replay, testing, and alternate runtimes
 - better compatibility with remote execution, durable queues, and richer UIs
 - fewer hidden coupling points between orchestration and persistence
@@ -155,7 +155,7 @@ These are good candidates for platform stabilization now:
 - event types leaving the core runtime
 - provider and tool interfaces
 - the meaning of `ThreadState` and `TurnState`
-- the durable schema for sessions/messages
+- the durable schema for threads/messages
 
 These should remain explicitly runtime-owned for now:
 

@@ -39,3 +39,20 @@ async def test_thread_runtime_start_resumes_latest_thread(tmp_path) -> None:
         await container.thread_runtime.stop()
 
     assert first != latest
+
+
+async def test_thread_runtime_start_is_idempotent(tmp_path) -> None:
+    container = Container(
+        AppConfig(
+            database_path=tmp_path / "state.db",
+            event_log_path=tmp_path / "events.jsonl",
+        )
+    )
+
+    await container.thread_runtime.start()
+    first_task_count = len(container.thread_runtime._tasks)
+    await container.thread_runtime.start()
+    try:
+        assert len(container.thread_runtime._tasks) == first_task_count == 1
+    finally:
+        await container.thread_runtime.stop()

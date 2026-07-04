@@ -55,6 +55,8 @@ class ThreadRuntime:
         return self.event_bus.subscribe()
 
     async def start(self) -> None:
+        if self._tasks:
+            return
         self.resume_latest_thread()
         self._tasks.append(asyncio.create_task(self._op_loop()))
 
@@ -74,6 +76,7 @@ class ThreadRuntime:
                     queue_depths=self.queue_depths(),
                 )
             )
+        self._tasks.clear()
 
     async def submit(self, op: TurnOp) -> None:
         await self.op_queue.put(op)

@@ -52,7 +52,11 @@ class SQLiteStore:
         }
         if "sessions" not in tables:
             return
-        conn.execute("alter table messages rename to messages_legacy")
+        has_legacy_messages = "messages" in tables
+        if "threads" in tables:
+            conn.execute("drop table threads")
+        if has_legacy_messages:
+            conn.execute("alter table messages rename to messages_legacy")
         conn.execute("alter table sessions rename to sessions_legacy")
         conn.execute(
             "create table threads (thread_id text primary key, title text, created_at text)"
@@ -64,12 +68,14 @@ class SQLiteStore:
             "insert into threads(thread_id, title, created_at) "
             "select session_id, title, created_at from sessions_legacy"
         )
-        conn.execute(
-            "insert into messages(thread_id, role, content, created_at) "
-            "select session_id, role, content, created_at from messages_legacy"
-        )
+        if has_legacy_messages:
+            conn.execute(
+                "insert into messages(thread_id, role, content, created_at) "
+                "select session_id, role, content, created_at from messages_legacy"
+            )
         conn.execute("drop table sessions_legacy")
-        conn.execute("drop table messages_legacy")
+        if has_legacy_messages:
+            conn.execute("drop table messages_legacy")
 
     def create_thread(self, title: str = "New Thread") -> ThreadRecord:
         record = ThreadRecord(thread_id=str(uuid.uuid4()), title=title)
