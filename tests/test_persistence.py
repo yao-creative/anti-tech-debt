@@ -20,20 +20,8 @@ def test_thread_persistence_and_event_replay(tmp_path) -> None:
     assert container.event_log.replay() == []
 
 
-def test_legacy_session_schema_migrates_to_threads(tmp_path) -> None:
+def test_store_bootstraps_fresh_thread_schema(tmp_path) -> None:
     database_path = tmp_path / "state.db"
-    with sqlite3.connect(database_path) as conn:
-        conn.execute("create table sessions (session_id text primary key, title text, created_at text)")
-        conn.execute("create table messages (session_id text, role text, content text, created_at text)")
-        conn.execute(
-            "insert into sessions(session_id, title, created_at) values (?, ?, ?)",
-            ("legacy-thread", "legacy", "2026-01-01T00:00:00+00:00"),
-        )
-        conn.execute(
-            "insert into messages(session_id, role, content, created_at) values (?, ?, ?, ?)",
-            ("legacy-thread", "user", "hello", "2026-01-01T00:00:01+00:00"),
-        )
-
     container = Container(
         AppConfig(
             database_path=database_path,
@@ -41,56 +29,16 @@ def test_legacy_session_schema_migrates_to_threads(tmp_path) -> None:
         )
     )
 
-    assert container.store.get_thread("legacy-thread") is not None
-    assert container.store.list_messages("legacy-thread")[0].content == "hello"
+    thread_id = container.store.create_thread("fresh").thread_id
+
     with sqlite3.connect(database_path) as conn:
         tables = {row[0] for row in conn.execute("select name from sqlite_master where type = 'table'")}
+        thread_columns = [row[1] for row in conn.execute("pragma table_info(threads)")]
+        message_columns = [row[1] for row in conn.execute("pragma table_info(messages)")]
+
     assert "threads" in tables
+    assert "messages" in tables
     assert "sessions" not in tables
-
-
-def test_legacy_sessions_without_messages_still_migrate(tmp_path) -> None:
-    database_path = tmp_path / "state.db"
-    with sqlite3.connect(database_path) as conn:
-        conn.execute("create table sessions (session_id text primary key, title text, created_at text)")
-        conn.execute(
-            "insert into sessions(session_id, title, created_at) values (?, ?, ?)",
-            ("legacy-thread", "legacy", "2026-01-01T00:00:00+00:00"),
-        )
-
-    container = Container(
-        AppConfig(
-            database_path=database_path,
-            event_log_path=tmp_path / "events.jsonl",
-        )
-    )
-
-    assert container.store.get_thread("legacy-thread") is not None
-    assert container.store.list_messages("legacy-thread") == []
-
-
-def test_existing_threads_survive_legacy_session_migration(tmp_path) -> None:
-    database_path = tmp_path / "state.db"
-    with sqlite3.connect(database_path) as conn:
-        conn.execute("create table sessions (session_id text primary key, title text, created_at text)")
-        conn.execute("create table threads (thread_id text primary key, title text, created_at text)")
-        conn.execute("create table messages (thread_id text, role text, content text, created_at text)")
-        conn.execute(
-            "insert into sessions(session_id, title, created_at) values (?, ?, ?)",
-            ("legacy-thread", "legacy", "2026-01-01T00:00:00+00:00"),
-        )
-        conn.execute(
-            "insert into threads(thread_id, title, created_at) values (?, ?, ?)",
-            ("existing-thread", "existing", "2026-01-02T00:00:00+00:00"),
-        )
-
-    container = Container(
-        AppConfig(
-            database_path=database_path,
-            event_log_path=tmp_path / "events.jsonl",
-        )
-    )
-
-    thread_ids = {thread.thread_id for thread in container.store.list_threads()}
-    assert "legacy-thread" in thread_ids
-    assert "existing-thread" in thread_ids
+    assert thread_columns == ["thread_id", "title", "created_at"]
+    assert message_columns == ["thread_id", "role", "content", "created_at"]
+    assert container.store.get_thread(thread_id) is not None
