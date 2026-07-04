@@ -1,1 +1,8 @@
 codex/
+high-level-codex-analyses/
+omnigent/
+__pycache__/
+*.py[cod]
+*.db
+*.sqlite*
+tmp_*.jsonl
