@@ -12,7 +12,7 @@ def test_slash_commands_new_resume_tools(tmp_path) -> None:
             event_log_path=tmp_path / "events.jsonl",
         )
     )
-    manager = container.session_manager
+    manager = container.session_runtime
     commands = SlashCommands(manager)
     current = manager.create_session("first")
     message, new_session = commands.handle("/new", current)

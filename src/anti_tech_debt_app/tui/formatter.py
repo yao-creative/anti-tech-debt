@@ -2,10 +2,29 @@ from __future__ import annotations
 
 from rich.console import Console
 
-from anti_tech_debt_app.contracts.events import Event, StatusSnapshot
+from anti_tech_debt_app.contracts.events import Event, RuntimeState
 
 
 class TuiFormatter:
+    """Presentation adapter from runtime state into terminal output.
+
+    Owns:
+        Rendering policy for welcome, event, and status lines.
+
+    Mutates:
+        Console output only.
+
+    Observes:
+        Event and RuntimeState values.
+
+    Functional framing:
+        A renderer from domain objects to terminal-visible artifacts.
+
+    Category-theoretic framing:
+        A presentation functor that forgets internal structure while
+        preserving the visible ordering of outputs.
+    """
+
     def __init__(self, console: Console) -> None:
         self.console = console
 
@@ -16,9 +35,10 @@ class TuiFormatter:
     def render_event(self, event: Event) -> None:
         self.console.print(f"[cyan]{event.type}[/cyan] {event.payload}")
 
-    def render_status(self, status: StatusSnapshot | None) -> None:
+    def render_status(self, status: RuntimeState | None) -> None:
         if status is None:
             return
         self.console.print(
-            f"[dim]state={status.turn_state.value} model={status.model} queues={status.queue_depths}[/dim]"
+            f"[dim]session={status.session_state.value} state={status.turn_state.value} "
+            f"model={status.model} queues={status.queue_depths}[/dim]"
         )

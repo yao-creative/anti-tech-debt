@@ -8,6 +8,25 @@ from anti_tech_debt_app.contracts.models import MessageRecord, SessionRecord
 
 
 class SQLiteStore:
+    """SQLite-backed repository for sessions and messages.
+
+    Owns:
+        The database path and the relational storage for ``sessions`` and
+        ``messages``.
+
+    Mutates:
+        Durable rows in the SQLite database.
+
+    Observes:
+        SessionRecord and MessageRecord values handed in by the runtime.
+
+    Functional framing:
+        A repository algebra for persisting and loading conversation state.
+
+    Category-theoretic framing:
+        An interpreter from domain records into durable relational facts.
+    """
+
     def __init__(self, path: Path) -> None:
         self.path = path
         self.path.parent.mkdir(parents=True, exist_ok=True)

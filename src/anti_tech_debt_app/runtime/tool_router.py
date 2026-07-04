@@ -7,6 +7,25 @@ from anti_tech_debt_app.tools.registry import ToolCall, ToolRegistry, ToolResult
 
 
 class ToolRouter:
+    """Approval-gated dispatcher from tool calls to tool results.
+
+    Owns:
+        The composition of approval policy, tool registry, and tool-related
+        event publication.
+
+    Mutates:
+        The EventBus via tool approval and tool result events.
+    Observes:
+        ToolCall values, ApprovalRuntime decisions, and ToolRegistry output.
+
+    Functional framing:
+        An effectful dispatcher ``ToolCall -> ToolResult``.
+
+    Category-theoretic framing:
+        A composition of review and execute arrows with writer-like event
+        emission attached.
+    """
+
     def __init__(self, registry: ToolRegistry, approvals: ApprovalRuntime, event_bus: EventBus) -> None:
         self.registry = registry
         self.approvals = approvals

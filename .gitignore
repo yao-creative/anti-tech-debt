@@ -1,8 +1,9 @@
+
 codex/
-high-level-codex-analyses/
 omnigent/
 __pycache__/
 *.py[cod]
 *.db
+.anti-tech-debt-app/
 *.sqlite*
 tmp_*.jsonl

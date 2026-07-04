@@ -4,9 +4,13 @@ from dataclasses import dataclass
 
 
 @dataclass(slots=True)
-class StartTurn:
+class TurnOp:
     session_id: str
     user_input: str
+    kind: str = "user_turn"
+
+
+StartTurn = TurnOp
 
 
 @dataclass(slots=True)

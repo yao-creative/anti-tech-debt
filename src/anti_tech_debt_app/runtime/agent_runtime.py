@@ -10,6 +10,27 @@ from anti_tech_debt_app.tools.registry import ToolCall
 
 
 class AgentRuntime:
+    """Provider-driven interpreter for one agent turn.
+
+    Owns:
+        The turn-local orchestration logic that connects provider events,
+        tool dispatch, delegation, and bridged UI events.
+
+    Mutates:
+        ``event_bridge`` by emitting assistant and delegation events.
+
+    Observes:
+        ProviderEvent values, ToolRouter effects, and SubagentRuntime
+        results.
+
+    Functional framing:
+        A reducer over a streamed provider program that accumulates the final
+        assistant text while emitting side effects.
+
+    Category-theoretic framing:
+        A fold over an event algebra into the runtime effect category.
+    """
+
     def __init__(
         self,
         provider: ProviderAdapter,

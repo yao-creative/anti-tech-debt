@@ -1,10 +1,30 @@
 from __future__ import annotations
 
-from anti_tech_debt_app.runtime.session_manager import SessionManager
+from anti_tech_debt_app.runtime.session import SessionRuntime
 
 
 class SlashCommands:
-    def __init__(self, manager: SessionManager) -> None:
+    """Interpreter for REPL-local slash commands.
+
+    Owns:
+        The mapping from slash command strings to session-management actions.
+
+    Mutates:
+        Session selection only indirectly through returned values; it does not
+        mutate runtime state except by calling SessionManager to create a
+        session.
+
+    Observes:
+        Command strings and available session ids.
+
+    Functional framing:
+        A partial function from command text to UI actions.
+
+    Category-theoretic framing:
+        A small command algebra interpreted into session-selection outcomes.
+    """
+
+    def __init__(self, manager: SessionRuntime) -> None:
         self.manager = manager
 
     def handle(self, command: str, current_session_id: str) -> tuple[str, str | None]:

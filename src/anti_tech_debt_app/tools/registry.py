@@ -22,6 +22,24 @@ class Tool(Protocol):
 
 
 class ToolRegistry:
+    """Name-indexed registry of available tools.
+
+    Owns:
+        The mapping from tool names to tool implementations.
+
+    Mutates:
+        No runtime state after initialization in the current scaffold.
+
+    Observes:
+        ToolCall names and arguments.
+
+    Functional framing:
+        A dictionary-backed dispatcher over a small tool algebra.
+
+    Category-theoretic framing:
+        An indexed family of executable arrows selected by tool name.
+    """
+
     def __init__(self, tools: dict[str, Tool]) -> None:
         self._tools = tools
 

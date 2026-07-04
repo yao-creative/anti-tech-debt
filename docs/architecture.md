@@ -10,9 +10,8 @@ flowchart LR
     Repl[ReplApp]
     Composer[Composer]
     Formatter[TuiFormatter]
-    SessionManager[SessionManager]
-    TurnRunner[TurnRunner]
-    AgentRuntime[AgentRuntime]
+    SessionRuntime[SessionRuntime]
+    TurnLoop[TurnLoop]
     MockProvider[MockProvider]
     ToolRouter[ToolRouter]
     ApprovalRuntime[ApprovalRuntime]
@@ -26,21 +25,19 @@ flowchart LR
     User --> Repl
     Repl --> Composer
     Repl --> Formatter
-    Repl --> SessionManager
+    Repl --> SessionRuntime
     Repl --> EventBus
 
-    SessionManager --> TurnRunner
-    SessionManager --> SQLiteStore
-    SessionManager --> EventBus
+    SessionRuntime --> TurnLoop
+    SessionRuntime --> SQLiteStore
+    SessionRuntime --> EventBus
 
-    TurnRunner --> SQLiteStore
-    TurnRunner --> EventLog
-    TurnRunner --> EventBus
-    TurnRunner --> AgentRuntime
-
-    AgentRuntime --> MockProvider
-    AgentRuntime --> ToolRouter
-    AgentRuntime --> SubagentRuntime
+    TurnLoop --> SQLiteStore
+    TurnLoop --> EventLog
+    TurnLoop --> EventBus
+    TurnLoop --> MockProvider
+    TurnLoop --> ToolRouter
+    TurnLoop --> SubagentRuntime
 
     ToolRouter --> ApprovalRuntime
     ToolRouter --> ToolRegistry
@@ -49,36 +46,52 @@ flowchart LR
     SubagentRuntime --> EventBus
 ```
 
+## Formal Class Comments
+
+Here is the compressed markdown table organizing your components by their ownership, mutations, observations, and theoretical framings.
+
+| Component | Owns | Mutates | Observes | Functional Framing | Category-Theoretic Framing |
+| --- | --- | --- | --- | --- | --- |
+| **ReplApp** | Interactive control flow for one local terminal session; references to Composer, TuiFormatter, SlashCommands, StatusBar, and Container. | Current in-memory session selection inside the REPL loop; starts/stops SessionRuntime background tasks. | EventBus subscriber stream, prompt input, slash commands, and latest runtime state. | An interpreter from user intent into runtime commands; operationally a stateful shell over an effectful stream. | A boundary morphism from terminal interactions to the internal runtime category; preserves ordering but not purity because it sequences side effects. |
+| **Composer** | prompt-toolkit prompt session. | prompt-toolkit internal line-editing state only. | Raw user keystrokes and terminal input. | An effectful source of String values. | A producer object whose arrows yield user-input values in the IO category. |
+| **TuiFormatter** | Rendering policy for welcome text, events, and status lines. | Console output only. | Event values and RuntimeState values. | Mostly a renderer from domain events to presentation artifacts. | A presentation functor from runtime-event structure to terminal-render structure; intentionally non-faithful because formatting drops internal detail. |
+| **SessionRuntime** | Session lifecycle entrypoints and the inbound turn queue loop. | Queue consumption progress and background task registry. | Turn operations from the inbound queue and persisted session rows. | A coordinator that composes user operations with turn execution. | A mediator object that composes arrows from command space into turn-execution space. |
+| **TurnLoop** | One turn transaction boundary plus the canonical local runtime loop. | Persisted messages, event log entries, tool/subagent state transitions, and latest runtime state. | Prior message history, current user input, provider events, tool results, and subagent results. | A single effectful interpreter for turn execution. | A Kleisli arrow $TurnOp \to \text{Effect } TurnResult$, where effects include persistence and event emission. |
+| **MockProvider** | Deterministic happy-path provider script. | Nothing outside its local coroutine progression. | TurnContext. | A pure scenario generator wrapped in async iteration. | A coalgebra for unfolding a finite stream of ProviderEvent values from one TurnContext seed. |
+| **ToolRouter** | Tool dispatch policy and approval gate composition. | Published tool approval/result events. | ToolCall values, ApprovalRuntime decisions, and ToolRegistry results. | An effectful dispatcher $ToolCall \to ToolResult$. | A composition of two arrows, review and execute, with event emission as an attached writer-like effect. |
+| **ApprovalRuntime** | Approval rule for whether a tool call is allowed. | No shared state in the current implementation. | ToolCall. | A predicate lifted into async form. | A boolean-valued morphism from tool-call objects into a two-point approval object. |
+| **ToolRegistry** | Name-to-tool mapping. | No runtime state after construction in the current implementation. | `ToolCall.name` and tool-specific arguments. | A dictionary-backed dispatcher. | A small indexed family of morphisms selected by tool name. |
+| **PlannerTool** | Planner behavior for the single built-in tool. | Nothing. | ToolCall arguments. | A total function from planner input to a ToolResult payload. | A pure morphism in the domain layer, merely lifted into async for uniformity. |
+| **SubagentRuntime** | Delegated-task execution semantics for the scaffold. | `event_bridge` by publishing subagent lifecycle events. | Delegated task string and session identifier. | A worker that returns a derived result while emitting progress events. | A product arrow $Task \to (\text{Event}^*, Result)$, approximated operationally with streamed events plus a returned value. |
+| **EventBus** | Subscriber list and latest runtime state. | Subscriber registry and current runtime-state cache. | Event publications and RuntimeState publications from upstream actors. | In-memory pub-sub plus a last-value runtime-state cell. | A broadcast natural transformation from single event production into a family of subscriber queues. |
+| **SQLiteStore** | Sessions and messages persistence in SQLite. | `sessions` table and `messages` table. | SessionRecord and MessageRecord values passed in by higher layers. | Repository algebra for session/message storage. | A persistence interpreter from domain records to durable relations. |
+| **EventLog** | Append-only JSONL event history. | `events.jsonl`. | Event values. | A writer sink for replayable event history. | A Writer-like accumulator externalized as a file. |
+
+
 ## Core Queues And Event Channels
 
-Only two explicit typed queues are implemented today. Other interactions are direct async calls or pub-sub over `EventBus`.
+The runtime now has one explicit inbound typed queue. Tool execution and subagent execution are direct effects inside the canonical turn loop, and UI fanout happens through `EventBus`.
 
 ```mermaid
 flowchart TD
     User[User Input]
     Repl[ReplApp]
-    SubmissionQ[[submission_queue<br/>TypedQueue[StartTurn]<br/>bounded]]
-    SessionManager[SessionManager]
-    TurnRunner[TurnRunner]
-    AgentRuntime[AgentRuntime]
+    TurnInputQ[[turn_input_queue<br/>typed turn queue<br/>bounded]]
+    SessionRuntime[SessionRuntime]
+    TurnLoop[TurnLoop]
     ToolRouter[ToolRouter]
-    EventBridge[[event_bridge<br/>TypedQueue[Event]<br/>bounded]]
     EventBus[EventBus]
-    SubscriberQ[(asyncio.Queue[Event]<br/>per subscriber)]
+    SubscriberQ[(subscriber event queue<br/>per subscriber)]
     Printer[_print_events loop]
     Console[Rich Console]
 
     User --> Repl
-    Repl --> SubmissionQ
-    SubmissionQ --> SessionManager
-    SessionManager --> TurnRunner
-    TurnRunner --> AgentRuntime
-    AgentRuntime --> ToolRouter
-    AgentRuntime --> EventBridge
-    EventBridge --> SessionManager
-    SessionManager --> EventBus
+    Repl --> TurnInputQ
+    TurnInputQ --> SessionRuntime
+    SessionRuntime --> TurnLoop
+    TurnLoop --> ToolRouter
+    TurnLoop --> EventBus
     ToolRouter --> EventBus
-    TurnRunner --> EventBus
     EventBus --> SubscriberQ
     SubscriberQ --> Printer
     Printer --> Console
@@ -88,18 +101,18 @@ flowchart TD
 
 ```mermaid
 classDiagram
-    class TypedQueue~T~ {
+    class TypedQueue {
       +name: str
-      +put(payload: T)
-      +get() T
-      +get_nowait() T
+      +put(payload)
+      +get()
+      +get_nowait()
       +task_done()
       +qsize() int
     }
 
-    class QueueEnvelope~T~ {
+    class QueueEnvelope {
       +name: str
-      +payload: T
+      +payload: object
     }
 
     class StartTurn {
@@ -110,7 +123,7 @@ classDiagram
     class Event {
       +session_id: str
       +type: str
-      +payload: dict[str, Any]
+      +payload: object
       +created_at: str
     }
 
@@ -139,27 +152,27 @@ classDiagram
     class TurnContext {
       +session_id: str
       +user_input: str
-      +history: list[MessageRecord]
+      +history: message collection
       +allow_delegate: bool
     }
 
     class Event {
       +session_id: str
       +type: str
-      +payload: dict[str, Any]
+      +payload: object
       +created_at: str
     }
 
-    class StatusSnapshot {
+    class RuntimeState {
       +session_id: str
       +turn_state: TurnState
       +model: str
-      +queue_depths: dict[str, int]
+      +queue_depths: object
     }
 
     class ToolCall {
       +name: str
-      +arguments: dict[str, str]
+      +arguments: object
     }
 
     class ToolResult {
@@ -169,73 +182,68 @@ classDiagram
 
     class ProviderEvent {
       +type: str
-      +payload: dict[str, str]
+      +payload: object
     }
 
     SessionRecord --> MessageRecord : owns
     TurnContext --> MessageRecord : includes history
     Event --> SessionRecord : references by session_id
-    StatusSnapshot --> SessionRecord : references by session_id
+    RuntimeState --> SessionRecord : references by session_id
     ToolResult --> ToolCall : resolves
 ```
 
 ## Happy Path
 
-This is the current end-to-end flow implemented by `MockProvider`, `PlannerTool`, and `SubagentRuntime`.
+This is the current end-to-end flow implemented by `SessionRuntime`, `TurnLoop`, `MockProvider`, `PlannerTool`, and `SubagentRuntime`.
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant User
     participant Repl as ReplApp
-    participant SM as SessionManager
-    participant SQ as submission_queue
-    participant TR as TurnRunner
+    participant SR as SessionRuntime
+    participant SQ as turn_input_queue
+    participant TL as TurnLoop
     participant DB as SQLiteStore
     participant Log as EventLog
-    participant Agent as AgentRuntime
     participant Provider as MockProvider
     participant Router as ToolRouter
     participant Approval as ApprovalRuntime
     participant Planner as PlannerTool
     participant Sub as SubagentRuntime
-    participant Bridge as event_bridge
     participant Bus as EventBus
 
     User->>Repl: Enter prompt
-    Repl->>SM: submit_turn(session_id, user_input)
-    SM->>SQ: put(StartTurn)
-    SM->>SQ: get()
-    SM->>TR: run(session_id, user_input)
-    TR->>DB: list_messages(session_id)
-    TR->>DB: append user MessageRecord
-    TR->>Log: append turn.started
-    TR->>Bus: publish turn.started
-    TR->>Agent: run(TurnContext)
-    Agent->>Provider: stream(turn_context)
-    Provider-->>Agent: text_delta
-    Agent->>Bridge: put assistant.delta
-    Provider-->>Agent: tool_call(planner)
-    Agent->>Router: execute(ToolCall)
+    Repl->>SR: submit_turn(session_id, user_input)
+    SR->>SQ: put(TurnOp)
+    SR->>SQ: get()
+    SR->>TL: run(op)
+    TL->>DB: list_messages(session_id)
+    TL->>DB: append user MessageRecord
+    TL->>Log: append turn.started
+    TL->>Bus: publish turn.started
+    TL->>Provider: stream(turn_context)
+    Provider-->>TL: text_delta
+    TL->>Bus: publish assistant.delta
+    Provider-->>TL: tool_call(planner)
+    TL->>Router: execute(ToolCall)
     Router->>Approval: review(call)
     Approval-->>Router: approved
     Router->>Bus: publish tool.approval
     Router->>Planner: execute(call)
     Planner-->>Router: ToolResult
     Router->>Bus: publish tool.result
-    Provider-->>Agent: delegate(task)
-    Agent->>Sub: run(task)
-    Sub->>Bridge: put subagent.started
-    Sub->>Bridge: put subagent.completed
-    Sub-->>Agent: result
-    Agent->>Bridge: put assistant.note
-    Provider-->>Agent: final
-    Agent-->>TR: final_text
-    TR->>DB: append assistant MessageRecord
-    TR->>Log: append turn.completed
-    TR->>Bus: publish turn.completed
-    Bridge->>SM: bridged Event
-    SM->>Bus: publish bridged Event
+    Provider-->>TL: delegate(task)
+    TL->>Sub: run(task)
+    Sub->>Bus: publish subagent.started
+    Sub->>Bus: publish subagent.completed
+    Sub-->>TL: result
+    TL->>Bus: publish assistant.note
+    Provider-->>TL: final
+    TL-->>SR: final_text
+    TL->>DB: append assistant MessageRecord
+    TL->>Log: append turn.completed
+    TL->>Bus: publish turn.completed
     Bus-->>Repl: subscriber events
 ```
 

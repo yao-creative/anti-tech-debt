@@ -12,10 +12,18 @@ def utc_now() -> str:
 class TurnState(str, Enum):
     IDLE = "idle"
     RUNNING = "running"
+    WAITING_TOOL = "waiting_tool"
+    WAITING_SUBAGENT = "waiting_subagent"
     WAITING_APPROVAL = "waiting_approval"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
     FAILED = "failed"
+
+
+class SessionState(str, Enum):
+    IDLE = "idle"
+    ACTIVE = "active"
+    STOPPED = "stopped"
 
 
 @dataclass(slots=True)
