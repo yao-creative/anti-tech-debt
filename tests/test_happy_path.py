@@ -10,11 +10,11 @@ async def test_turn_happy_path(tmp_path) -> None:
         event_log_path=tmp_path / "events.jsonl",
     )
     container = Container(config)
-    session_id = container.session_runtime.create_session("test")
-    queue = container.session_runtime.subscribe()
-    await container.session_runtime.start()
+    await container.thread_runtime.start()
+    thread_id = container.thread_runtime.active_thread_id()
+    queue = container.thread_runtime.subscribe()
     try:
-        await container.session_runtime.submit_turn(session_id, "Fix duplicate abstractions")
+        await container.thread_runtime.submit_turn("Fix duplicate abstractions")
         events = []
         while True:
             event = await queue.get()
@@ -22,7 +22,7 @@ async def test_turn_happy_path(tmp_path) -> None:
             if event.type == "turn.completed":
                 break
     finally:
-        await container.session_runtime.stop()
+        await container.thread_runtime.stop()
     event_types = [event.type for event in events]
     assert "turn.started" in event_types
     assert "assistant.delta" in event_types
@@ -31,8 +31,9 @@ async def test_turn_happy_path(tmp_path) -> None:
     assert "turn.completed" in event_types
     replay = container.event_log.replay()
     assert replay[-1]["type"] == "turn.completed"
-    messages = container.store.list_messages(session_id)
+    messages = container.store.list_messages(thread_id)
     assert messages[-1].role == "assistant"
     assert "Happy path complete" in messages[-1].content
     assert container.event_bus.status is not None
     assert container.event_bus.status.turn_state.value == "completed"
+    assert container.event_bus.status.thread_id == thread_id

@@ -16,11 +16,11 @@ class ReplApp:
     """Interactive shell over the local runtime.
 
     Owns:
-        The terminal control loop, current session selection, and the
-        composition of composer, formatter, slash commands, and status bar.
+        The terminal control loop and the composition of composer, formatter,
+        slash commands, and status bar.
 
     Mutates:
-        REPL-local session selection and SessionManager task lifecycle.
+        ThreadRuntime task lifecycle.
 
     Observes:
         Prompt input, slash commands, EventBus runtime state, and subscribed event
@@ -40,15 +40,14 @@ class ReplApp:
         self.console = console or Console()
         self.formatter = TuiFormatter(self.console)
         self.composer = Composer()
-        self.slash_commands = SlashCommands(self.container.session_manager)
+        self.slash_commands = SlashCommands(self.container.thread_runtime)
         self.status_bar = StatusBar(self.container.event_bus)
 
     async def run(self) -> None:
-        session_id = self.container.session_runtime.create_session("Interactive Session")
-        await self.container.session_runtime.start()
-        event_queue = self.container.session_runtime.subscribe()
+        await self.container.thread_runtime.start()
+        event_queue = self.container.thread_runtime.subscribe()
         printer = asyncio.create_task(self._print_events(event_queue))
-        self.formatter.render_welcome(session_id)
+        self.formatter.render_welcome(self.container.thread_runtime.active_thread_id())
         try:
             while True:
                 self.formatter.render_status(self.container.event_bus.status)
@@ -56,19 +55,17 @@ class ReplApp:
                 if not text.strip():
                     continue
                 if text.startswith("/"):
-                    message, next_session = self.slash_commands.handle(text.strip(), session_id)
+                    message = self.slash_commands.handle(text.strip())
                     if message == "quit":
                         break
                     self.console.print(message)
-                    if next_session is not None:
-                        session_id = next_session
                     continue
-                await self.container.session_runtime.submit_turn(session_id, text)
+                await self.container.thread_runtime.submit_turn(text)
         finally:
             printer.cancel()
             with suppress(asyncio.CancelledError):
                 await printer
-            await self.container.session_runtime.stop()
+            await self.container.thread_runtime.stop()
 
     async def _print_events(self, event_queue: asyncio.Queue) -> None:
         while True:

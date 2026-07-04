@@ -15,7 +15,7 @@ class SubagentRuntime:
         ``event_bridge`` by publishing lifecycle events.
 
     Observes:
-        The delegated task string and session id.
+        The delegated task string and thread id.
 
     Functional framing:
         A worker that returns a result while emitting progress events.
@@ -28,13 +28,13 @@ class SubagentRuntime:
     def __init__(self, event_sink: TypedQueue[Event] | EventBus) -> None:
         self.event_sink = event_sink
 
-    async def run(self, session_id: str, task: str) -> str:
+    async def run(self, thread_id: str, task: str) -> str:
         await self._emit(
-            Event(session_id=session_id, type="subagent.started", payload={"task": task})
+            Event(thread_id=thread_id, type="subagent.started", payload={"task": task})
         )
         result = f"Subagent reviewed delegated task: {task}"
         await self._emit(
-            Event(session_id=session_id, type="subagent.completed", payload={"result": result})
+            Event(thread_id=thread_id, type="subagent.completed", payload={"result": result})
         )
         return result
 

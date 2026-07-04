@@ -30,4 +30,4 @@ class StatusBar:
         status = self.event_bus.status
         if status is None:
             return "state=idle"
-        return f"session={status.session_state.value} state={status.turn_state.value} model={status.model}"
+        return f"thread={status.thread_id} state={status.turn_state.value} model={status.model}"

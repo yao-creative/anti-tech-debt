@@ -4,21 +4,21 @@ import sqlite3
 import uuid
 from pathlib import Path
 
-from anti_tech_debt_app.contracts.models import MessageRecord, SessionRecord
+from anti_tech_debt_app.contracts.models import MessageRecord, ThreadRecord
 
 
 class SQLiteStore:
-    """SQLite-backed repository for sessions and messages.
+    """SQLite-backed repository for threads and messages.
 
     Owns:
-        The database path and the relational storage for ``sessions`` and
+        The database path and the relational storage for ``threads`` and
         ``messages``.
 
     Mutates:
         Durable rows in the SQLite database.
 
     Observes:
-        SessionRecord and MessageRecord values handed in by the runtime.
+        ThreadRecord and MessageRecord values handed in by the runtime.
 
     Functional framing:
         A repository algebra for persisting and loading conversation state.
@@ -37,53 +37,80 @@ class SQLiteStore:
 
     def _init_db(self) -> None:
         with self._connect() as conn:
+            self._migrate_legacy_schema(conn)
             conn.execute(
-                "create table if not exists sessions (session_id text primary key, title text, created_at text)"
+                "create table if not exists threads (thread_id text primary key, title text, created_at text)"
             )
             conn.execute(
-                "create table if not exists messages (session_id text, role text, content text, created_at text)"
+                "create table if not exists messages (thread_id text, role text, content text, created_at text)"
             )
 
-    def create_session(self, title: str = "New Session") -> SessionRecord:
-        record = SessionRecord(session_id=str(uuid.uuid4()), title=title)
+    def _migrate_legacy_schema(self, conn: sqlite3.Connection) -> None:
+        tables = {
+            row[0]
+            for row in conn.execute("select name from sqlite_master where type = 'table'").fetchall()
+        }
+        if "sessions" not in tables:
+            return
+        conn.execute("alter table messages rename to messages_legacy")
+        conn.execute("alter table sessions rename to sessions_legacy")
+        conn.execute(
+            "create table threads (thread_id text primary key, title text, created_at text)"
+        )
+        conn.execute(
+            "create table messages (thread_id text, role text, content text, created_at text)"
+        )
+        conn.execute(
+            "insert into threads(thread_id, title, created_at) "
+            "select session_id, title, created_at from sessions_legacy"
+        )
+        conn.execute(
+            "insert into messages(thread_id, role, content, created_at) "
+            "select session_id, role, content, created_at from messages_legacy"
+        )
+        conn.execute("drop table sessions_legacy")
+        conn.execute("drop table messages_legacy")
+
+    def create_thread(self, title: str = "New Thread") -> ThreadRecord:
+        record = ThreadRecord(thread_id=str(uuid.uuid4()), title=title)
         with self._connect() as conn:
             conn.execute(
-                "insert into sessions(session_id, title, created_at) values (?, ?, ?)",
-                (record.session_id, record.title, record.created_at),
+                "insert into threads(thread_id, title, created_at) values (?, ?, ?)",
+                (record.thread_id, record.title, record.created_at),
             )
         return record
 
-    def get_session(self, session_id: str) -> SessionRecord | None:
+    def get_thread(self, thread_id: str) -> ThreadRecord | None:
         with self._connect() as conn:
             row = conn.execute(
-                "select session_id, title, created_at from sessions where session_id = ?",
-                (session_id,),
+                "select thread_id, title, created_at from threads where thread_id = ?",
+                (thread_id,),
             ).fetchone()
         if row is None:
             return None
-        return SessionRecord(session_id=row[0], title=row[1], created_at=row[2])
+        return ThreadRecord(thread_id=row[0], title=row[1], created_at=row[2])
 
-    def list_sessions(self) -> list[SessionRecord]:
+    def list_threads(self) -> list[ThreadRecord]:
         with self._connect() as conn:
             rows = conn.execute(
-                "select session_id, title, created_at from sessions order by created_at desc"
+                "select thread_id, title, created_at from threads order by created_at desc"
             ).fetchall()
-        return [SessionRecord(session_id=row[0], title=row[1], created_at=row[2]) for row in rows]
+        return [ThreadRecord(thread_id=row[0], title=row[1], created_at=row[2]) for row in rows]
 
     def append_message(self, message: MessageRecord) -> None:
         with self._connect() as conn:
             conn.execute(
-                "insert into messages(session_id, role, content, created_at) values (?, ?, ?, ?)",
-                (message.session_id, message.role, message.content, message.created_at),
+                "insert into messages(thread_id, role, content, created_at) values (?, ?, ?, ?)",
+                (message.thread_id, message.role, message.content, message.created_at),
             )
 
-    def list_messages(self, session_id: str) -> list[MessageRecord]:
+    def list_messages(self, thread_id: str) -> list[MessageRecord]:
         with self._connect() as conn:
             rows = conn.execute(
-                "select session_id, role, content, created_at from messages where session_id = ? order by rowid asc",
-                (session_id,),
+                "select thread_id, role, content, created_at from messages where thread_id = ? order by rowid asc",
+                (thread_id,),
             ).fetchall()
         return [
-            MessageRecord(session_id=row[0], role=row[1], content=row[2], created_at=row[3])
+            MessageRecord(thread_id=row[0], role=row[1], content=row[2], created_at=row[3])
             for row in rows
         ]

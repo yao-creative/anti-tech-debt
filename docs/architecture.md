@@ -10,7 +10,7 @@ flowchart LR
     Repl[ReplApp]
     Composer[Composer]
     Formatter[TuiFormatter]
-    SessionRuntime[SessionRuntime]
+    ThreadRuntime[ThreadRuntime]
     TurnLoop[TurnLoop]
     MockProvider[MockProvider]
     ToolRouter[ToolRouter]
@@ -25,12 +25,12 @@ flowchart LR
     User --> Repl
     Repl --> Composer
     Repl --> Formatter
-    Repl --> SessionRuntime
+    Repl --> ThreadRuntime
     Repl --> EventBus
 
-    SessionRuntime --> TurnLoop
-    SessionRuntime --> SQLiteStore
-    SessionRuntime --> EventBus
+    ThreadRuntime --> TurnLoop
+    ThreadRuntime --> SQLiteStore
+    ThreadRuntime --> EventBus
 
     TurnLoop --> SQLiteStore
     TurnLoop --> EventLog
@@ -52,19 +52,19 @@ Here is the compressed markdown table organizing your components by their owners
 
 | Component | Owns | Mutates | Observes | Functional Framing | Category-Theoretic Framing |
 | --- | --- | --- | --- | --- | --- |
-| **ReplApp** | Interactive control flow for one local terminal session; references to Composer, TuiFormatter, SlashCommands, StatusBar, and Container. | Current in-memory session selection inside the REPL loop; starts/stops SessionRuntime background tasks. | EventBus subscriber stream, prompt input, slash commands, and latest runtime state. | An interpreter from user intent into runtime commands; operationally a stateful shell over an effectful stream. | A boundary morphism from terminal interactions to the internal runtime category; preserves ordering but not purity because it sequences side effects. |
+| **ReplApp** | Interactive control flow for one local terminal surface; references to Composer, TuiFormatter, SlashCommands, StatusBar, and Container. | Starts and stops `ThreadRuntime` background tasks; no REPL-local thread selection remains. | EventBus subscriber stream, prompt input, slash commands, and latest runtime state. | An interpreter from user intent into runtime commands; operationally a stateful shell over an effectful stream. | A boundary morphism from terminal interactions to the internal runtime category; preserves ordering but not purity because it sequences side effects. |
 | **Composer** | prompt-toolkit prompt session. | prompt-toolkit internal line-editing state only. | Raw user keystrokes and terminal input. | An effectful source of String values. | A producer object whose arrows yield user-input values in the IO category. |
 | **TuiFormatter** | Rendering policy for welcome text, events, and status lines. | Console output only. | Event values and RuntimeState values. | Mostly a renderer from domain events to presentation artifacts. | A presentation functor from runtime-event structure to terminal-render structure; intentionally non-faithful because formatting drops internal detail. |
-| **SessionRuntime** | Session lifecycle entrypoints and the inbound turn queue loop. | Queue consumption progress and background task registry. | Turn operations from the inbound queue and persisted session rows. | A coordinator that composes user operations with turn execution. | A mediator object that composes arrows from command space into turn-execution space. |
+| **ThreadRuntime** | Thread lifecycle entrypoints, active-thread ownership, and the inbound turn queue loop. | Active thread selection, queue consumption progress, and background task registry. | Turn operations from the inbound queue and persisted thread rows. | A coordinator that composes user operations with turn execution. | A mediator object that composes arrows from command space into turn-execution space. |
 | **TurnLoop** | One turn transaction boundary plus the canonical local runtime loop. | Persisted messages, event log entries, tool/subagent state transitions, and latest runtime state. | Prior message history, current user input, provider events, tool results, and subagent results. | A single effectful interpreter for turn execution. | A Kleisli arrow $TurnOp \to \text{Effect } TurnResult$, where effects include persistence and event emission. |
 | **MockProvider** | Deterministic happy-path provider script. | Nothing outside its local coroutine progression. | TurnContext. | A pure scenario generator wrapped in async iteration. | A coalgebra for unfolding a finite stream of ProviderEvent values from one TurnContext seed. |
 | **ToolRouter** | Tool dispatch policy and approval gate composition. | Published tool approval/result events. | ToolCall values, ApprovalRuntime decisions, and ToolRegistry results. | An effectful dispatcher $ToolCall \to ToolResult$. | A composition of two arrows, review and execute, with event emission as an attached writer-like effect. |
 | **ApprovalRuntime** | Approval rule for whether a tool call is allowed. | No shared state in the current implementation. | ToolCall. | A predicate lifted into async form. | A boolean-valued morphism from tool-call objects into a two-point approval object. |
 | **ToolRegistry** | Name-to-tool mapping. | No runtime state after construction in the current implementation. | `ToolCall.name` and tool-specific arguments. | A dictionary-backed dispatcher. | A small indexed family of morphisms selected by tool name. |
 | **PlannerTool** | Planner behavior for the single built-in tool. | Nothing. | ToolCall arguments. | A total function from planner input to a ToolResult payload. | A pure morphism in the domain layer, merely lifted into async for uniformity. |
-| **SubagentRuntime** | Delegated-task execution semantics for the scaffold. | `event_bridge` by publishing subagent lifecycle events. | Delegated task string and session identifier. | A worker that returns a derived result while emitting progress events. | A product arrow $Task \to (\text{Event}^*, Result)$, approximated operationally with streamed events plus a returned value. |
+| **SubagentRuntime** | Delegated-task execution semantics for the scaffold. | `event_bridge` by publishing subagent lifecycle events. | Delegated task string and thread identifier. | A worker that returns a derived result while emitting progress events. | A product arrow $Task \to (\text{Event}^*, Result)$, approximated operationally with streamed events plus a returned value. |
 | **EventBus** | Subscriber list and latest runtime state. | Subscriber registry and current runtime-state cache. | Event publications and RuntimeState publications from upstream actors. | In-memory pub-sub plus a last-value runtime-state cell. | A broadcast natural transformation from single event production into a family of subscriber queues. |
-| **SQLiteStore** | Sessions and messages persistence in SQLite. | `sessions` table and `messages` table. | SessionRecord and MessageRecord values passed in by higher layers. | Repository algebra for session/message storage. | A persistence interpreter from domain records to durable relations. |
+| **SQLiteStore** | Threads and messages persistence in SQLite. | `threads` table and `messages` table. | ThreadRecord and MessageRecord values passed in by higher layers. | Repository algebra for thread/message storage. | A persistence interpreter from domain records to durable relations. |
 | **EventLog** | Append-only JSONL event history. | `events.jsonl`. | Event values. | A writer sink for replayable event history. | A Writer-like accumulator externalized as a file. |
 
 
@@ -77,7 +77,7 @@ flowchart TD
     User[User Input]
     Repl[ReplApp]
     TurnInputQ[[turn_input_queue<br/>typed turn queue<br/>bounded]]
-    SessionRuntime[SessionRuntime]
+    ThreadRuntime[ThreadRuntime]
     TurnLoop[TurnLoop]
     ToolRouter[ToolRouter]
     EventBus[EventBus]
@@ -87,8 +87,8 @@ flowchart TD
 
     User --> Repl
     Repl --> TurnInputQ
-    TurnInputQ --> SessionRuntime
-    SessionRuntime --> TurnLoop
+    TurnInputQ --> ThreadRuntime
+    ThreadRuntime --> TurnLoop
     TurnLoop --> ToolRouter
     TurnLoop --> EventBus
     ToolRouter --> EventBus
@@ -116,12 +116,12 @@ classDiagram
     }
 
     class StartTurn {
-      +session_id: str
+      +thread_id: str
       +user_input: str
     }
 
     class Event {
-      +session_id: str
+      +thread_id: str
       +type: str
       +payload: object
       +created_at: str
@@ -136,35 +136,36 @@ classDiagram
 
 ```mermaid
 classDiagram
-    class SessionRecord {
-      +session_id: str
+    class ThreadRecord {
+      +thread_id: str
       +title: str
       +created_at: str
     }
 
     class MessageRecord {
-      +session_id: str
+      +thread_id: str
       +role: str
       +content: str
       +created_at: str
     }
 
     class TurnContext {
-      +session_id: str
+      +thread_id: str
       +user_input: str
       +history: message collection
       +allow_delegate: bool
     }
 
     class Event {
-      +session_id: str
+      +thread_id: str
       +type: str
       +payload: object
       +created_at: str
     }
 
     class RuntimeState {
-      +session_id: str
+      +thread_id: str
+      +thread_state: ThreadState
       +turn_state: TurnState
       +model: str
       +queue_depths: object
@@ -185,23 +186,23 @@ classDiagram
       +payload: object
     }
 
-    SessionRecord --> MessageRecord : owns
+    ThreadRecord --> MessageRecord : owns
     TurnContext --> MessageRecord : includes history
-    Event --> SessionRecord : references by session_id
-    RuntimeState --> SessionRecord : references by session_id
+    Event --> ThreadRecord : references by thread_id
+    RuntimeState --> ThreadRecord : references by thread_id
     ToolResult --> ToolCall : resolves
 ```
 
 ## Happy Path
 
-This is the current end-to-end flow implemented by `SessionRuntime`, `TurnLoop`, `MockProvider`, `PlannerTool`, and `SubagentRuntime`.
+This is the current end-to-end flow implemented by `ThreadRuntime`, `TurnLoop`, `MockProvider`, `PlannerTool`, and `SubagentRuntime`.
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant User
     participant Repl as ReplApp
-    participant SR as SessionRuntime
+    participant TR as ThreadRuntime
     participant SQ as turn_input_queue
     participant TL as TurnLoop
     participant DB as SQLiteStore
@@ -214,11 +215,11 @@ sequenceDiagram
     participant Bus as EventBus
 
     User->>Repl: Enter prompt
-    Repl->>SR: submit_turn(session_id, user_input)
-    SR->>SQ: put(TurnOp)
-    SR->>SQ: get()
-    SR->>TL: run(op)
-    TL->>DB: list_messages(session_id)
+    Repl->>TR: submit_turn(user_input)
+    TR->>SQ: put(TurnOp(thread_id))
+    TR->>SQ: get()
+    TR->>TL: run(op)
+    TL->>DB: list_messages(thread_id)
     TL->>DB: append user MessageRecord
     TL->>Log: append turn.started
     TL->>Bus: publish turn.started
@@ -240,7 +241,7 @@ sequenceDiagram
     Sub-->>TL: result
     TL->>Bus: publish assistant.note
     Provider-->>TL: final
-    TL-->>SR: final_text
+    TL-->>TR: final_text
     TL->>DB: append assistant MessageRecord
     TL->>Log: append turn.completed
     TL->>Bus: publish turn.completed
@@ -269,35 +270,35 @@ The implemented SQLite schema is intentionally minimal.
 ```mermaid
 erDiagram
     SESSIONS {
-        text session_id PK
+        text thread_id PK
         text title
         text created_at
     }
 
     MESSAGES {
-        text session_id FK
+        text thread_id FK
         text role
         text content
         text created_at
     }
 
-    SESSIONS ||--o{ MESSAGES : contains
+    THREADS ||--o{ MESSAGES : contains
 ```
 
 ## Persistence Model
 
-SQLite is the source of truth for sessions and messages. The JSONL event log is append-only debug and replay support.
+SQLite is the source of truth for threads and messages. The JSONL event log is append-only debug and replay support.
 
 ```mermaid
 flowchart LR
     TurnRunner[TurnRunner]
     SQLite[(SQLiteStore)]
-    Sessions[(sessions table)]
+    Threads[(threads table)]
     Messages[(messages table)]
     EventLog[(events.jsonl)]
 
     TurnRunner --> SQLite
-    SQLite --> Sessions
+    SQLite --> Threads
     SQLite --> Messages
     TurnRunner --> EventLog
 ```
@@ -305,14 +306,14 @@ flowchart LR
 ## Actual Database Tables
 
 ```sql
-create table if not exists sessions (
-  session_id text primary key,
+create table if not exists threads (
+  thread_id text primary key,
   title text,
   created_at text
 );
 
 create table if not exists messages (
-  session_id text,
+  thread_id text,
   role text,
   content text,
   created_at text

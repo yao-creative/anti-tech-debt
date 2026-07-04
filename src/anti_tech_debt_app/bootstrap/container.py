@@ -8,8 +8,8 @@ from anti_tech_debt_app.persistence.sqlite_store import SQLiteStore
 from anti_tech_debt_app.providers.mock_provider import MockProvider
 from anti_tech_debt_app.runtime.approval_runtime import ApprovalRuntime
 from anti_tech_debt_app.runtime.event_bus import EventBus
-from anti_tech_debt_app.runtime.session import SessionRuntime
 from anti_tech_debt_app.runtime.subagent_runtime import SubagentRuntime
+from anti_tech_debt_app.runtime.thread import ThreadRuntime
 from anti_tech_debt_app.runtime.tool_router import ToolRouter
 from anti_tech_debt_app.runtime.turn_loop import TurnLoop
 from anti_tech_debt_app.tools.planner import PlannerTool
@@ -58,11 +58,10 @@ class Container:
             self.subagent_runtime,
             self.config.default_model,
         )
-        self.session_runtime = SessionRuntime(
+        self.thread_runtime = ThreadRuntime(
             self.store,
             self.event_bus,
             self.turn_loop,
             self.turn_input_queue,
         )
-        self.session_manager = self.session_runtime
         self.turn_runner = self.turn_loop

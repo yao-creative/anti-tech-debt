@@ -28,8 +28,8 @@ class TuiFormatter:
     def __init__(self, console: Console) -> None:
         self.console = console
 
-    def render_welcome(self, session_id: str) -> None:
-        self.console.print(f"[bold]anti-tech-debt-app[/bold] session={session_id}")
+    def render_welcome(self, thread_id: str) -> None:
+        self.console.print(f"[bold]anti-tech-debt-app[/bold] thread={thread_id}")
         self.console.print("[dim]/help /new /resume /tools /quit[/dim]")
 
     def render_event(self, event: Event) -> None:
@@ -39,6 +39,6 @@ class TuiFormatter:
         if status is None:
             return
         self.console.print(
-            f"[dim]session={status.session_state.value} state={status.turn_state.value} "
+            f"[dim]thread={status.thread_id} thread_state={status.thread_state.value} state={status.turn_state.value} "
             f"model={status.model} queues={status.queue_depths}[/dim]"
         )
