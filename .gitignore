@@ -7,3 +7,5 @@ __pycache__/
 .anti-tech-debt-app/
 *.sqlite*
 tmp_*.jsonl
+
+.agents/.worktrees/

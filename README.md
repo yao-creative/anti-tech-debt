@@ -9,3 +9,10 @@ uv sync
 uv run anti-tech-debt-app
 uv run pytest
 ```
+
+## Design:
+
+1. Single User owned Thread/ session.
+
+2. Agent is a state machine interacting with queues.
+
