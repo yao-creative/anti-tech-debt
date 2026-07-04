@@ -1,6 +1,6 @@
 # anti-tech-debt-app
 
-Local-first Python scaffold for a Codex/Omnigent-style agent runtime with a REPL/TUI, typed queues, SQLite persistence, and a mock-first happy path.
+Local-first Python scaffold for a Codex/Omnigent-style agent runtime with a REPL/TUI, typed queues, SQLite thread persistence, and a mock-first happy path.
 
 ## Commands
 
@@ -9,3 +9,10 @@ uv sync
 uv run anti-tech-debt-app
 uv run pytest
 ```
+
+## Design:
+
+1. Single User owned Thread/ session.
+
+2. Agent is a state machine interacting with queues.
+
