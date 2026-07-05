@@ -14,6 +14,25 @@ class QueueEnvelope(Generic[T]):
 
 
 class TypedQueue(Generic[T]):
+    """Typed wrapper over ``asyncio.Queue`` with named envelopes.
+
+    Owns:
+        One queue instance and its queue name.
+
+    Mutates:
+        Queue occupancy and completion bookkeeping.
+
+    Observes:
+        Payload values flowing between runtime actors.
+
+    Functional framing:
+        A bounded asynchronous channel carrying values of one logical type.
+
+    Category-theoretic framing:
+        A process boundary object whose arrows sequence producers and
+        consumers in the asynchronous effect category.
+    """
+
     def __init__(self, name: str, maxsize: int = 0) -> None:
         self.name = name
         self._queue: asyncio.Queue[QueueEnvelope[T]] = asyncio.Queue(maxsize=maxsize)

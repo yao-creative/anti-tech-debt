@@ -8,6 +8,24 @@ from anti_tech_debt_app.contracts.events import Event
 
 
 class EventLog:
+    """Append-only JSONL sink for replayable runtime events.
+
+    Owns:
+        The filesystem path for the event log.
+
+    Mutates:
+        The JSONL file contents by appending serialized events.
+
+    Observes:
+        Event values emitted by higher runtime layers.
+
+    Functional framing:
+        A writer sink for durable event history.
+
+    Category-theoretic framing:
+        A Writer-like accumulator externalized into the filesystem.
+    """
+
     def __init__(self, path: Path) -> None:
         self.path = path
         self.path.parent.mkdir(parents=True, exist_ok=True)

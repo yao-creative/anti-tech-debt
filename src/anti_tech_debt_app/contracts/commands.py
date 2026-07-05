@@ -4,16 +4,20 @@ from dataclasses import dataclass
 
 
 @dataclass(slots=True)
-class StartTurn:
-    session_id: str
+class TurnOp:
+    thread_id: str
     user_input: str
+    kind: str = "user_turn"
+
+
+StartTurn = TurnOp
 
 
 @dataclass(slots=True)
 class InterruptTurn:
-    session_id: str
+    thread_id: str
 
 
 @dataclass(slots=True)
-class ResumeSession:
-    session_id: str
+class ResumeThread:
+    thread_id: str

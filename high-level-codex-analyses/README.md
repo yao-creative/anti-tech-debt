@@ -2,6 +2,12 @@
 
 This repository contains a local copy of the `codex/` source tree. This README summarizes a generic Codex-style architecture based on the runtime and state-machine docs in that tree, with an emphasis on the core happy path.
 
+## Additional Notes
+
+- `Actors-and-queues-codex.md`
+- `codex-communication-boundaries.md`
+- `design-philosophy-and-state-separation.md`
+
 ## Core System Shape
 
 At a high level, Codex behaves like an event-driven agent runtime:
