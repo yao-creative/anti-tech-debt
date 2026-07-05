@@ -3,11 +3,8 @@ from __future__ import annotations
 from anti_tech_debt_app.contracts.commands import TurnOp
 from anti_tech_debt_app.contracts.events import Event, RuntimeState
 from anti_tech_debt_app.contracts.models import MessageRecord, ThreadState, TurnContext, TurnState
-from anti_tech_debt_app.persistence.event_log import EventLog
-from anti_tech_debt_app.persistence.sqlite_store import SQLiteStore
-from anti_tech_debt_app.providers.base import ProviderAdapter
+from anti_tech_debt_app.contracts.ports import ConversationStore, EventRecorder, ProviderAdapter, SubagentExecutor
 from anti_tech_debt_app.runtime.event_bus import EventBus
-from anti_tech_debt_app.runtime.subagent_runtime import SubagentRuntime
 from anti_tech_debt_app.runtime.tool_router import ToolRouter
 from anti_tech_debt_app.tools.registry import ToolCall
 
@@ -37,12 +34,12 @@ class TurnLoop:
 
     def __init__(
         self,
-        store: SQLiteStore,
-        event_log: EventLog,
+        store: ConversationStore,
+        event_log: EventRecorder,
         event_bus: EventBus,
         provider: ProviderAdapter,
         tool_router: ToolRouter,
-        subagent_runtime: SubagentRuntime,
+        subagent_runtime: SubagentExecutor,
         model: str,
     ) -> None:
         self.store = store

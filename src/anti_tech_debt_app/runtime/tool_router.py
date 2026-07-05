@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from anti_tech_debt_app.contracts.events import Event
-from anti_tech_debt_app.runtime.approval_runtime import ApprovalRuntime
+from anti_tech_debt_app.contracts.ports import ApprovalPolicy, ToolExecutor
 from anti_tech_debt_app.runtime.event_bus import EventBus
-from anti_tech_debt_app.tools.registry import ToolCall, ToolRegistry, ToolResult
+from anti_tech_debt_app.tools.registry import ToolCall, ToolResult
 
 
 class ToolRouter:
@@ -26,7 +26,7 @@ class ToolRouter:
         emission attached.
     """
 
-    def __init__(self, registry: ToolRegistry, approvals: ApprovalRuntime, event_bus: EventBus) -> None:
+    def __init__(self, registry: ToolExecutor, approvals: ApprovalPolicy, event_bus: EventBus) -> None:
         self.registry = registry
         self.approvals = approvals
         self.event_bus = event_bus
