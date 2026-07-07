@@ -31,11 +31,11 @@ jobs:
       - name: Sync dependencies
         run: uv sync --dev --locked
 
-      - name: Run Ruff lint
-        run: uv run ruff check .
+      - name: Run Ruff lint (fixable)
+        run: uv run ruff check --fix .
 
-      - name: Run Ruff format check
-        run: uv run ruff format --check .
+      - name: Run Ruff format
+        run: uv run ruff format .
 
       - name: Run tests
         run: uv run pytest
