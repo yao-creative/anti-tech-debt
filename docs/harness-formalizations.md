@@ -14,9 +14,9 @@ I’ll structure it like a **small execution calculus** first, then map it to ca
 
 We define an agent system as a tuple:
 
-[
+$$
 \mathcal{H} = (S, A, Q, R, \Delta, \Sigma, \mathcal{T})
-]
+$$
 
 Where:
 
@@ -36,15 +36,15 @@ Where:
 
 Let:
 
-[
+$$
 m \in \Sigma
-]
+$$
 
 A message is:
 
-[
+$$
 m := (src, dst, payload, meta)
-]
+$$
 
 Where:
 
@@ -57,9 +57,9 @@ Where:
 
 ## 1.2 Message space
 
-[
+$$
 \Sigma = A \times A \times P \times M
-]
+$$
 
 ---
 
@@ -69,9 +69,9 @@ Where:
 
 A state machine is:
 
-[
+$$
 \mathcal{M} = (S, E, \delta)
-]
+$$
 
 Where:
 
@@ -83,15 +83,15 @@ Where:
 
 ## 2.2 Transition function
 
-[
+$$
 \delta : S \times E \rightarrow S
-]
+$$
 
 Optionally with output:
 
-[
+$$
 \delta : S \times E \rightarrow S \times O
-]
+$$
 
 ---
 
@@ -99,9 +99,9 @@ Optionally with output:
 
 For all (s, e):
 
-[
+$$
 \delta(s, e) \text{ is deterministic}
-]
+$$
 
 No dependence on external state.
 
@@ -113,9 +113,9 @@ No dependence on external state.
 
 An actor is:
 
-[
+$$
 a \in A := (id, \mathcal{M}, q)
-]
+$$
 
 Where:
 
@@ -129,9 +129,9 @@ Where:
 
 Actor evolution is:
 
-[
+$$
 step(a) := \text{if } q \neq \emptyset \text{ then process next message}
-]
+$$
 
 ---
 
@@ -144,9 +144,9 @@ Let:
 
 Then:
 
-[
+$$
 s' = \delta(s, m)
-]
+$$
 
 Actor updates state machine only locally.
 
@@ -158,9 +158,9 @@ Actors satisfy:
 
 > **single-threaded mailbox processing**
 
-[
+$$
 \forall a,\ \text{only one } m \in q \text{ is processed at a time}
-]
+$$
 
 ---
 
@@ -170,9 +170,9 @@ Actors satisfy:
 
 A queue is:
 
-[
+$$
 Q := (M, \prec, \mu)
-]
+$$
 
 Where:
 
@@ -186,15 +186,15 @@ Where:
 
 ### enqueue
 
-[
+$$
 enqueue : Q \times m \rightarrow Q
-]
+$$
 
 ### dequeue
 
-[
+$$
 dequeue : Q \rightarrow Q \times m
-]
+$$
 
 (partial if empty)
 
@@ -204,15 +204,15 @@ dequeue : Q \rightarrow Q \times m
 
 ### FIFO:
 
-[
+$$
 m_1 \prec m_2 \Rightarrow dequeue(m_1) \text{ before } dequeue(m_2)
-]
+$$
 
 or more generally:
 
-[
+$$
 \prec \subseteq M \times M
-]
+$$
 
 defines partial or total order.
 
@@ -222,21 +222,21 @@ defines partial or total order.
 
 Add acknowledgment state:
 
-[
+$$
 Q_r = (M_{pending}, M_{inflight}, ack)
-]
+$$
 
 Operations:
 
 * deliver:
-  [
+  $$
   Q \rightarrow (Q, m)
-  ]
+  $$
 
 * ack:
-  [
+  $$
   Q \times id \rightarrow Q
-  ]
+  $$
 
 ---
 
@@ -246,9 +246,9 @@ Operations:
 
 Router is:
 
-[
+$$
 R : M \rightarrow A
-]
+$$
 
 It maps messages to actors.
 
@@ -258,17 +258,17 @@ It maps messages to actors.
 
 ### determinism:
 
-[
+$$
 R(m) = a \text{ is deterministic or policy-defined}
-]
+$$
 
 ### partitioning:
 
 Actors define partition of message space:
 
-[
+$$
 \bigcup_{a \in A} R^{-1}(a) = M
-]
+$$
 
 ---
 
@@ -280,9 +280,9 @@ Router chooses:
 
 So:
 
-[
+$$
 R : \Sigma \rightarrow \text{Hom}(A)
-]
+$$
 
 ---
 
@@ -292,9 +292,9 @@ R : \Sigma \rightarrow \text{Hom}(A)
 
 Scheduler:
 
-[
+$$
 \mathcal{T} : (A, Q) \rightarrow A^*
-]
+$$
 
 Where:
 
@@ -306,9 +306,9 @@ Where:
 
 Global step:
 
-[
+$$
 System(t+1) = \mathcal{T}(System(t))
-]
+$$
 
 ---
 
@@ -322,9 +322,9 @@ Scheduler defines ordering relation:
 
 Formally:
 
-[
+$$
 \leq_{\mathcal{T}} \subseteq A \times A
-]
+$$
 
 ---
 
@@ -332,9 +332,9 @@ Formally:
 
 ## 7.1 Global state
 
-[
+$$
 X = (S_A, Q, R)
-]
+$$
 
 Where:
 
@@ -348,15 +348,15 @@ Where:
 
 System evolves via:
 
-[
+$$
 X_{t+1} = F(X_t)
-]
+$$
 
 Where:
 
-[
+$$
 F = \mathcal{T} \circ \text{dispatch} \circ \text{route} \circ \text{transition}
-]
+$$
 
 Expanded:
 
@@ -378,9 +378,9 @@ Now we compress into categorical structure.
 
 Define category:
 
-[
+$$
 \mathbf{AgentSys}
-]
+$$
 
 ### Objects:
 
@@ -395,27 +395,27 @@ Define category:
 
 ### state transition:
 
-[
+$$
 \delta : S \times M \rightarrow S
-]
+$$
 
 ### routing:
 
-[
+$$
 R : M \rightarrow A
-]
+$$
 
 ### queue evolution:
 
-[
+$$
 \mu : Q \times M \rightarrow Q
-]
+$$
 
 ### scheduling:
 
-[
+$$
 \mathcal{T} : System \rightarrow System
-]
+$$
 
 ---
 
@@ -423,15 +423,15 @@ R : M \rightarrow A
 
 The system is a coalgebra:
 
-[
+$$
 X \rightarrow F(X)
-]
+$$
 
 Where functor:
 
-[
+$$
 F(X) = (S \times Q \times M)^{A}
-]
+$$
 
 Interpretation:
 
@@ -455,25 +455,25 @@ Now we map each component to a fixed interface:
 
 ## StateMachine
 
-[
+$$
 \delta : S \times E \rightarrow S
-]
+$$
 
 ---
 
 ## Actor
 
-[
+$$
 step : (S, Q) \rightarrow (S, Q)
-]
+$$
 
 ---
 
 ## Queue
 
-[
+$$
 Q : enqueue, dequeue, ack
-]
+$$
 
 with ordering law (\prec)
 
@@ -481,17 +481,17 @@ with ordering law (\prec)
 
 ## Router
 
-[
+$$
 R : M \rightarrow A
-]
+$$
 
 ---
 
 ## Scheduler
 
-[
+$$
 \mathcal{T} : System \rightarrow System
-]
+$$
 
 ---
 
