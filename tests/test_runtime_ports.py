@@ -4,7 +4,7 @@ from collections.abc import AsyncIterator
 
 from anti_tech_debt_app.contracts.commands import TurnOp
 from anti_tech_debt_app.contracts.events import Event
-from anti_tech_debt_app.contracts.models import MessageRecord, ThreadRecord, TurnContext
+from anti_tech_debt_app.contracts.models import MessageRecord, ThreadRecord, TurnContext, TurnState
 from anti_tech_debt_app.contracts.ports import ProviderEvent
 from anti_tech_debt_app.contracts.queues import TypedQueue
 from anti_tech_debt_app.runtime.approval_runtime import ApprovalRuntime
@@ -93,6 +93,12 @@ class FakeApprovalPolicy:
         return self.approved
 
 
+class RaisingProvider:
+    async def stream(self, turn_context: TurnContext) -> AsyncIterator[ProviderEvent]:
+        raise RuntimeError("boom")
+        yield
+
+
 async def test_turn_loop_accepts_fake_ports_and_persists_result() -> None:
     store = FakeStore()
     thread = store.create_thread("test")
@@ -112,8 +118,14 @@ async def test_turn_loop_accepts_fake_ports_and_persists_result() -> None:
     subagent = FakeSubagent()
     turn_loop = TurnLoop(store, event_log, event_bus, provider, tool_router, subagent, "test-model")
     queue = event_bus.subscribe()
+    status_calls: list[tuple[str, TurnState, dict[str, int] | None]] = []
 
-    result = await turn_loop.run(TurnOp(thread_id=thread.thread_id, user_input="refactor later"))
+    result = await turn_loop.run(
+        TurnOp(thread_id=thread.thread_id, user_input="refactor later"),
+        status_callback=lambda thread_id, turn_state, queue_depths: status_calls.append(
+            (thread_id, turn_state, queue_depths)
+        ),
+    )
 
     assert result == "done"
     assert provider.contexts[0].history[0].content == "earlier"
@@ -121,6 +133,14 @@ async def test_turn_loop_accepts_fake_ports_and_persists_result() -> None:
     assert subagent.calls == [(thread.thread_id, "audit hotspot")]
     assert [event.type for event in event_log.events] == ["turn.started", "turn.completed"]
     assert store.list_messages(thread.thread_id)[-1].content == "done"
+    assert [turn_state for _, turn_state, _ in status_calls] == [
+        TurnState.RUNNING,
+        TurnState.WAITING_TOOL,
+        TurnState.RUNNING,
+        TurnState.WAITING_SUBAGENT,
+        TurnState.RUNNING,
+        TurnState.COMPLETED,
+    ]
 
     seen_types = [queue.get_nowait().type for _ in range(5)]
     assert seen_types == [
@@ -172,3 +192,31 @@ async def test_thread_runtime_uses_store_port_for_thread_lifecycle() -> None:
         assert runtime.list_threads()[0].thread_id == active
     finally:
         await runtime.stop()
+
+
+async def test_turn_loop_publish_failure_reports_failed_status() -> None:
+    store = FakeStore()
+    thread = store.create_thread("test")
+    event_log = FakeEventLog()
+    event_bus = EventBus()
+    turn_loop = TurnLoop(
+        store,
+        event_log,
+        event_bus,
+        RaisingProvider(),
+        ToolRouter(FakeToolExecutor(), ApprovalRuntime(auto_approve=True), event_bus),
+        FakeSubagent(),
+        "test-model",
+    )
+    status_calls: list[tuple[str, TurnState, dict[str, int] | None]] = []
+
+    await turn_loop.publish_failure(
+        thread.thread_id,
+        RuntimeError("boom"),
+        status_callback=lambda thread_id, turn_state, queue_depths: status_calls.append(
+            (thread_id, turn_state, queue_depths)
+        ),
+    )
+
+    assert [event.type for event in event_log.events] == ["turn.failed"]
+    assert status_calls == [(thread.thread_id, TurnState.FAILED, None)]

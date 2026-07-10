@@ -14,7 +14,6 @@ class TurnState(str, Enum):
     RUNNING = "running"
     WAITING_TOOL = "waiting_tool"
     WAITING_SUBAGENT = "waiting_subagent"
-    WAITING_APPROVAL = "waiting_approval"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
     FAILED = "failed"
