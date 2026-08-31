@@ -35,5 +35,6 @@ async def test_turn_happy_path(tmp_path) -> None:
     assert messages[-1].role == "assistant"
     assert "Happy path complete" in messages[-1].content
     assert container.event_bus.status is not None
+    assert container.event_bus.status.thread_state.value == "stopped"
     assert container.event_bus.status.turn_state.value == "completed"
     assert container.event_bus.status.thread_id == thread_id
