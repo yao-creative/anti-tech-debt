@@ -1,3 +1,4 @@
+.DS_Store
 
 codex/
 omnigent/
@@ -5,7 +6,7 @@ high-level-codex-analyses/
 __pycache__/
 *.py[cod]
 *.db
-.anti-tech-debt-app/
+.app-store/
 *.sqlite*
 tmp_*.jsonl
 
