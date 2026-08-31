@@ -1,6 +1,10 @@
 # anti-tech-debt-app
 
+## Usage
 
+```make run```
+
+## Other design notes.
 Observations:
 
 Finding good signals of what good code/ maths is very hard. Everyone has intrinsic epistemic bias and agreement over what is right and the why to best practice are always weakly defined. By cleaning for strong signals, I can boost my learning rate and this learning rate is the second order derivative on the diffeq of output productivity. More quality learn = less busy work + more pay = more happiness :D.
