@@ -8,8 +8,8 @@ from pathlib import Path
 class AppConfig:
     app_name: str = "anti-tech-debt-app"
     default_model: str = "mock-stream"
-    database_path: Path = Path(".anti-tech-debt-app/state.db")
-    event_log_path: Path = Path(".anti-tech-debt-app/events.jsonl")
+    database_path: Path = Path(".app-store/state.db")
+    event_log_path: Path = Path(".app-store/events.jsonl")
     workspace_path: Path = Path(".")
     queue_capacity: int = 32
 
