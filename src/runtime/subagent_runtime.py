@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from anti_tech_debt_app.contracts.events import Event
-from anti_tech_debt_app.contracts.queues import TypedQueue
-from anti_tech_debt_app.runtime.event_bus import EventBus
+from contracts.events import Event
+from contracts.queues import TypedQueue
+from runtime.event_bus import EventBus
 
 
 class SubagentRuntime:

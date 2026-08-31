@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from anti_tech_debt_app.tools.registry import ToolCall, ToolResult
+from tools.registry import ToolCall, ToolResult
 
 
 class PlannerTool:

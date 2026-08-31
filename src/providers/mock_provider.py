@@ -3,8 +3,8 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncIterator
 
-from anti_tech_debt_app.contracts.models import TurnContext
-from anti_tech_debt_app.providers.base import ProviderAdapter, ProviderEvent
+from contracts.models import TurnContext
+from contracts.ports import ProviderAdapter, ProviderEvent
 
 
 class MockProvider(ProviderAdapter):

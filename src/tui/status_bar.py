@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from anti_tech_debt_app.runtime.event_bus import EventBus
+from runtime.event_bus import EventBus
 
 
 class StatusBar:

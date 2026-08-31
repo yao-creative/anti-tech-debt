@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from anti_tech_debt_app.tools.registry import ToolCall, ToolResult
+from tools.registry import ToolCall, ToolResult
 
 
 class FilesystemReadTool:

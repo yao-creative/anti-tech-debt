@@ -2,13 +2,18 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from anti_tech_debt_app.contracts.commands import TurnOp
-from anti_tech_debt_app.contracts.events import Event
-from anti_tech_debt_app.contracts.models import MessageRecord, TurnContext, TurnState
-from anti_tech_debt_app.contracts.ports import ConversationStore, EventRecorder, ProviderAdapter, SubagentExecutor
-from anti_tech_debt_app.runtime.event_bus import EventBus
-from anti_tech_debt_app.runtime.tool_router import ToolRouter
-from anti_tech_debt_app.tools.registry import ToolCall
+from contracts.commands import TurnOp
+from contracts.events import Event
+from contracts.models import MessageRecord, TurnContext, TurnState
+from contracts.ports import (
+    ConversationStore,
+    EventRecorder,
+    ProviderAdapter,
+    SubagentExecutor,
+)
+from runtime.event_bus import EventBus
+from runtime.tool_router import ToolRouter
+from tools.registry import ToolCall
 
 StatusCallback = Callable[[str, TurnState, dict[str, int] | None], None]
 

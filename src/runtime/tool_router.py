@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from anti_tech_debt_app.contracts.events import Event
-from anti_tech_debt_app.contracts.ports import ApprovalPolicy, ToolExecutor
-from anti_tech_debt_app.runtime.event_bus import EventBus
-from anti_tech_debt_app.tools.registry import ToolCall, ToolResult
+from contracts.events import Event
+from contracts.ports import ApprovalPolicy, ToolExecutor
+from runtime.event_bus import EventBus
+from tools.registry import ToolCall, ToolResult
 
 
 class ToolRouter:

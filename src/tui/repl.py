@@ -5,11 +5,11 @@ from contextlib import suppress
 
 from rich.console import Console
 
-from anti_tech_debt_app.bootstrap.container import Container
-from anti_tech_debt_app.tui.composer import Composer
-from anti_tech_debt_app.tui.formatter import TuiFormatter
-from anti_tech_debt_app.tui.slash_commands import SlashCommands
-from anti_tech_debt_app.tui.status_bar import StatusBar
+from bootstrap.container import Container
+from tui.composer import Composer
+from tui.formatter import TuiFormatter
+from tui.slash_commands import SlashCommands
+from tui.status_bar import StatusBar
 
 
 class ReplApp:
@@ -36,6 +36,7 @@ class ReplApp:
     """
 
     def __init__(self, container: Container, console: Console | None = None) -> None:
+        # poset 
         self.container = container
         self.console = console or Console()
         self.formatter = TuiFormatter(self.console)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 
-from anti_tech_debt_app.tools.registry import ToolCall, ToolResult
+from tools.registry import ToolCall, ToolResult
 
 
 class ShellEchoTool:

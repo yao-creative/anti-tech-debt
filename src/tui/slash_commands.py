@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from anti_tech_debt_app.runtime.thread import ThreadRuntime
+from runtime.thread import ThreadRuntime
 
 
 class SlashCommands:

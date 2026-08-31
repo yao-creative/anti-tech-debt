@@ -4,7 +4,7 @@ import sqlite3
 import uuid
 from pathlib import Path
 
-from anti_tech_debt_app.contracts.models import MessageRecord, ThreadRecord
+from contracts.models import MessageRecord, ThreadRecord
 
 
 class SQLiteStore:

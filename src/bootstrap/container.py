@@ -1,23 +1,24 @@
 from __future__ import annotations
 
-from anti_tech_debt_app.config import AppConfig
-from anti_tech_debt_app.contracts.commands import TurnOp
-from anti_tech_debt_app.contracts.queues import TypedQueue
-from anti_tech_debt_app.persistence.event_log import EventLog
-from anti_tech_debt_app.persistence.sqlite_store import SQLiteStore
-from anti_tech_debt_app.providers.mock_provider import MockProvider
-from anti_tech_debt_app.runtime.approval_runtime import ApprovalRuntime
-from anti_tech_debt_app.runtime.event_bus import EventBus
-from anti_tech_debt_app.runtime.subagent_runtime import SubagentRuntime
-from anti_tech_debt_app.runtime.thread import ThreadRuntime
-from anti_tech_debt_app.runtime.tool_router import ToolRouter
-from anti_tech_debt_app.runtime.turn_loop import TurnLoop
-from anti_tech_debt_app.tools.planner import PlannerTool
-from anti_tech_debt_app.tools.registry import ToolRegistry
+from config import AppConfig
+from contracts.commands import TurnOp
+from contracts.queues import TypedQueue
+from persistence.event_log import EventLog
+from persistence.sqlite_store import SQLiteStore
+from providers.mock_provider import MockProvider
+from runtime.approval_runtime import ApprovalRuntime
+from runtime.event_bus import EventBus
+from runtime.subagent_runtime import SubagentRuntime
+from runtime.thread import ThreadRuntime
+from runtime.tool_router import ToolRouter
+from runtime.turn_loop import TurnLoop
+from tools.planner import PlannerTool
+from tools.registry import ToolRegistry
 
 
 class Container:
     """Composition root for the local application runtime.
+    Composition root is a DAG/ Poset of Domain/ components
 
     Owns:
         The concrete wiring of persistence, queues, provider, tooling, and

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 
-from anti_tech_debt_app.contracts.events import Event, RuntimeState
+from contracts.events import Event, RuntimeState
 
 
 class EventBus:

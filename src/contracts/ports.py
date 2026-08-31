@@ -4,9 +4,9 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from typing import Protocol
 
-from anti_tech_debt_app.contracts.events import Event
-from anti_tech_debt_app.contracts.models import MessageRecord, ThreadRecord, TurnContext
-from anti_tech_debt_app.tools.registry import ToolCall, ToolResult
+from contracts.events import Event
+from contracts.models import MessageRecord, ThreadRecord, TurnContext
+from tools.registry import ToolCall, ToolResult
 
 
 @dataclass(slots=True)

@@ -4,7 +4,7 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 
-from anti_tech_debt_app.contracts.events import Event
+from contracts.events import Event
 
 
 class EventLog:

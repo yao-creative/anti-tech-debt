@@ -3,13 +3,14 @@ from __future__ import annotations
 import asyncio
 from contextlib import suppress
 
-from anti_tech_debt_app.contracts.commands import TurnOp
-from anti_tech_debt_app.contracts.events import RuntimeState
-from anti_tech_debt_app.contracts.models import ThreadRecord, ThreadState, TurnState
-from anti_tech_debt_app.contracts.ports import ConversationStore
-from anti_tech_debt_app.contracts.queues import TypedQueue
-from anti_tech_debt_app.runtime.event_bus import EventBus
-from anti_tech_debt_app.runtime.turn_loop import TurnLoop
+from contracts.commands import TurnOp
+from contracts.events import RuntimeState
+from contracts.models import ThreadRecord, ThreadState, TurnState
+from contracts.ports import ConversationStore
+from contracts.queues import TypedQueue
+from runtime.event_bus import EventBus
+from runtime.turn_loop import TurnLoop
+from monads import catching
 
 
 class ThreadRuntime:
